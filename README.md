@@ -13,6 +13,7 @@
          |--- esquemático (diagrama do circuito)
                     |---biblioteca_kicad (símbolos criados para o esquempatico)
                     |---arquivos_kicad (arquivo kicad do esquemático)
+                    |---esquemático do projeto
          |--- imagens (imagens usadas no README)
          |--- README (descrição da entrega)
 ```
