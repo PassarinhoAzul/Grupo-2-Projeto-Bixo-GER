@@ -20,8 +20,8 @@ Fotos do circuito:
 
 ### Alimentação:
 A alimentação do circuito 'dividida em duas partes: 8V e 5V. 
-- 8V: alimentação da ponte H (L298N), feita através de duas pilhas 18650. As pilhas são colocadas em um suporte e a parte positiva desse conjunto é seccionado através de um interruptor que permite ligar ou desligar o robô.
-- 5V: alimentação do Esp32-C3 Super mini e dos Encoders. Ela advém do pino de +5V fornecido pela ponte H e do GND do robô, que são conectados em um barramento de alimentação (2x4 fêmea para cada). 
+- **8V:** alimentação da ponte H (L298N), feita através de duas pilhas 18650. As pilhas são colocadas em um suporte e a parte positiva desse conjunto é seccionado através de um interruptor que permite ligar ou desligar o robô.
+- **5V:** alimentação do Esp32-C3 Super mini e dos Encoders. Ela advém do pino de +5V fornecido pela ponte H e do GND do robô, que são conectados em um barramento de alimentação (2x4 fêmea para cada). 
 
 ***
 
