@@ -1,4 +1,4 @@
-# Projeto Bixo GER - Grupo 2
+# Projeto Bixo GER - Grupo 2 - Gênios da Bola
 
 ## Organizaçao das pastas:
 
