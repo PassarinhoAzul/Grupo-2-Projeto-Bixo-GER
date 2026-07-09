@@ -32,8 +32,6 @@ Para encaixar os motores e encoders, sofremos algumas dificuldades devido ao sub
 ### Encaixe das placas:
 Para encaixar das placas, cortados uma placa ilhada em um tamanho adequado e montamos ela em cima do chassi, utilizando extensores, de tal forma que ela ficasse elevada. Isto é, pois haviam parafusos na parte inferior do espaço onde ficariam as placas. Após isso, montamos as placas no apoio com uso de porcas e parafusos, buscando fixar no mínimo 2 pontos de apoio. Além disso para o ESP32-C3 Super Mini, criamos uma placa com um barramento para todos os pinos do ESP, a fim de dar mias flexblidade no projeto, já que as conexões não permenantes permitem o teste de diferentes topologias.
 
-Fotos do circuito:
-![Plaquinha do ESP32-C3 Super Mini](imagens/PCBs.jpeg)
 
 ***
 ### Procedimento:
