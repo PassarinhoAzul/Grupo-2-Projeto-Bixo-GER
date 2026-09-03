@@ -24,6 +24,7 @@
 // fora do fluxo normal do codigo (ou seja, dentro das interrupcoes).
 volatile long ticks_esq = 0;
 volatile long ticks_dir = 0;
+unsigned long delta_tempo = 0;
 
 // Variaveis para garantir que o loop principal rode em frequencia fixa (Sem delay!)
 unsigned long tempo_anterior = 0;
@@ -72,9 +73,6 @@ void calcula_odometria() {
   long ticks_atuais_dir = ticks_dir;
   interrupts();
 
-  //
-  unsigned long delta_tempo = millis() - tempo_anterior;
-
   // Quantidade de ticks no intervalo delta de tempo
   long delta_ticks_esq = ticks_atuais_esq - ticks_esq;
   long delta_ticks_dir = ticks_atuais_dir - ticks_dir;
@@ -83,6 +81,7 @@ void calcula_odometria() {
   // Calcular para cada roda
   long vel_esq = delta_ticks_esq / delta_tempo;
   long vel_dir = delta_ticks_dir / delta_tempo;
+
 
   // TODO (Aula 3): Com os ticks atuais e o tempo percorrido (INTERVALO_AMOSTRAGEM_MS),
   // calculem a Velocidade Angular de cada roda (rad/s). v_ang =
@@ -132,11 +131,10 @@ void setup() {
 // ==========================================
 void loop() {
   unsigned long tempo_atual = millis();
+  delta_tempo = millis() - tempo_anterior;
   
   // Verifica se ja passou o tempo necessario (ex: 50ms) para rodar o controle novamente
   if (tempo_atual - tempo_anterior >= INTERVALO_AMOSTRAGEM_MS) {
-
-
     calcula_odometria();
     controle_pid();
     
