@@ -17,6 +17,9 @@
 #define MOT_DIR_IN1 8
 #define MOT_DIR_IN2 9
 
+#define RODA 4.084 // mm
+
+
 // ==========================================
 // 2. VARIAVEIS GLOBAIS DE SISTEMA
 // ==========================================
@@ -24,6 +27,18 @@
 // fora do fluxo normal do codigo (ou seja, dentro das interrupcoes).
 volatile long ticks_esq = 0;
 volatile long ticks_dir = 0;
+long vel_esq_lin = 0;
+long vel_dir_lin = 0;
+
+int esq_estado;
+int esq_ultimo_estado;
+int esq_direcao;
+
+int dir_estado;
+int dir_ultimo_estado;
+int dir_direcao;
+
+
 unsigned long delta_tempo = 0;
 
 // Variaveis para garantir que o loop principal rode em frequencia fixa (Sem delay!)
@@ -55,11 +70,37 @@ void IRAM_ATTR isr_encoder_esq() {
   // se a roda esta indo para frente ou para tras. 
   // Por enquanto, o codigo apenas conta para cima:
   ticks_esq++;
+
+  esq_estado = digitalread(ENC_IN_ESQ_B);
+
+  if (esq_ultimo_estado == 0 && esq_estado == 1){
+    if(digitalread(ENC_IN_ESQ_A) == 0){
+      esq_direcao = -1; //Sentido horário;
+    }
+    else{
+      esq_direcao = 1;  //Sentido anti-horário;
+    }
+  }
+
+  esq_ultimo_estado = esq_estado;
 }
 
 void IRAM_ATTR isr_encoder_dir() {
   // TODO (Aula 3): Implementar a logica de quadratura para a roda direita.
   ticks_dir++;
+
+  dir_estado = digitalread(ENC_IN_DIR_B);
+
+  if (dir_ultimo_estado == 0 && dir_estado == 1){
+    if(digitalread(ENC_IN_DIR_A) == 0){
+      dir_direcao = 1;   //Sentido horário;
+    }
+    else{
+      dir_direcao = -1;  //Sentido anti-horário;
+    }
+  }
+
+  dir_ultimo_estado = dir_estado;
 }
 
 // ==========================================
@@ -79,10 +120,20 @@ void calcula_odometria() {
 
   // Tick por seg
   // Calcular para cada roda
-  long vel_esq = delta_ticks_esq / delta_tempo;
-  long vel_dir = delta_ticks_dir / delta_tempo;
+  long vel_esq_ticks = (delta_ticks_esq / delta_tempo) * 1000;
+  long vel_dir_ticks = (delta_ticks_dir / delta_tempo) * 1000;
 
+  // Velocidade angular
+  // 1 tick /10
+  long rot_dir = vel_dir_ticks / 10;
+  long rot_esq = vel_esq_ticks / 10;
 
+  //Velocidade linear
+  // cm/s
+  long vel_esq_lin;
+  long vel_dir_lin;
+  vel_esq_lin = rot_esq * (RODA / 2);
+  vel_dir_lin = rot_dir * (RODA / 2);
   // TODO (Aula 3): Com os ticks atuais e o tempo percorrido (INTERVALO_AMOSTRAGEM_MS),
   // calculem a Velocidade Angular de cada roda (rad/s). v_ang =
   // Em seguida, calculem a Velocidade Linear (m/s) e Angular (rad/s) do centro do robo.
