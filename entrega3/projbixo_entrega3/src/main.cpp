@@ -32,18 +32,18 @@ long vel_dir_lin = 0;
 
 int esq_estado;
 int esq_ultimo_estado;
-int esq_direcao;
+int esq_direcao = 1;
 
 int dir_estado;
 int dir_ultimo_estado;
-int dir_direcao;
+int dir_direcao = 1;
 
 
 unsigned long delta_tempo = 0;
 
 // Variaveis para garantir que o loop principal rode em frequencia fixa (Sem delay!)
 unsigned long tempo_anterior = 0;
-const int INTERVALO_AMOSTRAGEM_MS = 50; // Roda o controle a 20Hz
+const int INTERVALO_AMOSTRAGEM_MS = 500; // Roda o controle a 20Hz
 
 // ==========================================
 // 3. CABECALHOS PARA O MICRO-ROS (PARA A AULA 5)
@@ -70,11 +70,11 @@ void IRAM_ATTR isr_encoder_esq() {
   // se a roda esta indo para frente ou para tras. 
   // Por enquanto, o codigo apenas conta para cima:
   ticks_esq++;
-
-  esq_estado = digitalread(ENC_IN_ESQ_B);
+  /*
+  esq_estado = digitalRead(ENC_IN_ESQ_B);
 
   if (esq_ultimo_estado == 0 && esq_estado == 1){
-    if(digitalread(ENC_IN_ESQ_A) == 0){
+    if(digitalRead(ENC_IN_ESQ_A) == 0){
       esq_direcao = -1; //Sentido horário;
     }
     else{
@@ -83,16 +83,17 @@ void IRAM_ATTR isr_encoder_esq() {
   }
 
   esq_ultimo_estado = esq_estado;
+  */
 }
 
 void IRAM_ATTR isr_encoder_dir() {
   // TODO (Aula 3): Implementar a logica de quadratura para a roda direita.
   ticks_dir++;
-
-  dir_estado = digitalread(ENC_IN_DIR_B);
+  /*
+  dir_estado = digitalRead(ENC_IN_DIR_B);
 
   if (dir_ultimo_estado == 0 && dir_estado == 1){
-    if(digitalread(ENC_IN_DIR_A) == 0){
+    if(digitalRead(ENC_IN_DIR_A) == 0){
       dir_direcao = 1;   //Sentido horário;
     }
     else{
@@ -101,6 +102,7 @@ void IRAM_ATTR isr_encoder_dir() {
   }
 
   dir_ultimo_estado = dir_estado;
+  */
 }
 
 // ==========================================
@@ -112,16 +114,21 @@ void calcula_odometria() {
   noInterrupts();
   long ticks_atuais_esq = ticks_esq;
   long ticks_atuais_dir = ticks_dir;
+
+  ticks_esq = 0;
+  ticks_dir = 0;
   interrupts();
 
   // Quantidade de ticks no intervalo delta de tempo
-  long delta_ticks_esq = ticks_atuais_esq - ticks_esq;
-  long delta_ticks_dir = ticks_atuais_dir - ticks_dir;
+
+  long delta_ticks_esq = ticks_atuais_esq;
+  long delta_ticks_dir = ticks_atuais_dir;
 
   // Tick por seg
   // Calcular para cada roda
-  long vel_esq_ticks = (delta_ticks_esq / delta_tempo) * 1000;
-  long vel_dir_ticks = (delta_ticks_dir / delta_tempo) * 1000;
+  long vel_esq_ticks = (delta_ticks_esq / (delta_tempo / 1000));
+  long vel_dir_ticks = (delta_ticks_dir / (delta_tempo / 1000));
+  Serial.println(vel_dir_ticks);
 
   // Velocidade angular
   // 1 tick /10
@@ -132,11 +139,13 @@ void calcula_odometria() {
   // cm/s
   long vel_esq_lin;
   long vel_dir_lin;
-  vel_esq_lin = rot_esq * (RODA / 2);
-  vel_dir_lin = rot_dir * (RODA / 2);
+  vel_esq_lin = (rot_esq * (RODA / 2)) * esq_direcao;
+  vel_dir_lin = (rot_dir * (RODA / 2)) * dir_direcao;
   // TODO (Aula 3): Com os ticks atuais e o tempo percorrido (INTERVALO_AMOSTRAGEM_MS),
   // calculem a Velocidade Angular de cada roda (rad/s). v_ang =
   // Em seguida, calculem a Velocidade Linear (m/s) e Angular (rad/s) do centro do robo.
+
+
 }
 
 void controle_pid() {
@@ -188,7 +197,7 @@ void loop() {
   if (tempo_atual - tempo_anterior >= INTERVALO_AMOSTRAGEM_MS) {
     calcula_odometria();
     controle_pid();
-    
+  
     // ==========================================
     // INTEGRAcaO ROS 2 (Apenas na Aula 5)
     // ==========================================
@@ -197,11 +206,18 @@ void loop() {
     // rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10));
     
     // (Uso para as Aulas 3 e 4) - Log Serial para os Engenheiros de Dados plotarem graficos!
-    Serial.print("Ticks_Esq:"); 
+
+    /*
+    Serial.print("Velocidade_Esq:"); 
+    Serial.print(vel_esq_lin);
+    Serial.print("\tVelocidade_Dir:"); 
+    Serial.println(vel_dir_lin);
+
+    Serial.print("\tticks_Esq:"); 
     Serial.print(ticks_esq);
-    Serial.print("\tTicks_Dir:"); 
+    Serial.print("\ttics_Dir:"); 
     Serial.println(ticks_dir);
-    
+    */
     // Atualiza o relogio para a proxima execucao
     tempo_anterior = tempo_atual;
   }
