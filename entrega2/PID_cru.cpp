@@ -1,11 +1,23 @@
 #include <Arduino.h>
 
+#define MOT_ESQ_PWM 4
+#define MOT_ESQ_IN1 5
+#define MOT_ESQ_IN2 6
+
+#define MOT_DIR_PWM 7
+#define MOT_DIR_IN1 8
+#define MOT_DIR_IN2 9
+
 // Variáveis de Tempo e Velocidade
+/*
 unsigned long tempoAtual;
 unsigned long deltaTempo;
 unsigned long tempoAnterior = 0;
-double velocidadeAtual = 0;
-double velocidadeDesejada = 100.0; // Velocidade alvo em pulsos por segundo
+double velocidadeAtual_Esq = 0;
+double velocidadeAtual_Dir = 0;
+double velocidadeDesejada_Esq = 100.0; // Velocidade alvo em pulsos por segundo
+double velocidadeDesejada_Dir = 100.0; // Velocidade alvo em pulsos por segundo
+*/
 
 // Constantes PID (Esses valores devem ser ajustados/tunados para cada caso)
 double kp = 2.0;
@@ -17,11 +29,31 @@ double erroIntegral = 0;
 double erroAnterior = 0;
 
 void logicaPID();
+void motorParaFrente();
+void motorParaTras():
 
 void setup()
 {
   Serial.begin(9600);
 }
+
+struct Motor {
+      // Pinos de controle (Ponte H)
+      int pinPWM;
+      int pinIN1;
+      int pinIN2;
+
+      // Variáveis de Velocidade
+      double velocidadeDesejada;
+      double velocidadeAtual;
+
+      // Variáveis do PID
+      double erroIntegral;
+      double erroAnterior;
+};
+
+Motor motorEsquerdo = {MOT_ESQ_PWM, MOT_ESQ_IN1, MOT_ESQ_IN2, 0.0, 0.0, 0.0, 0.0};
+Motor motorDireito  = {MOT_DIR_PWM, MOT_DIR_IN1, MOT_DIR_IN2, 0.0, 0.0, 0.0, 0.0};
 
 void loop()
 {
@@ -42,72 +74,58 @@ void loop()
   }
 }
 
-void logicaPID()
+void calcularPIDMotor(Motor &motor, double deltaTempo)
 {
-  // 1. Obter a velocidade atual do motor, isso pode vir de uma lógia externa à esta função
-  // neste caso, está sendo feito no loop, atualizada na variável 'velocidadeAtual'
+      if (deltaTempo <= 0) return;
 
+      // Cálculo do Erro
+      double erro = motor.velocidadeDesejada - motor.velocidadeAtual;
 
-  // 2. Algoritmo PID
+      // Termo Integral com Anti-Windup
+      motor.erroIntegral += erro * (deltaTempo / 1000.0);
+      motor.erroIntegral = constrain(motor.erroIntegral, -100.0, 100.0);
 
-  // Proporcional
-  double erro = velocidadeDesejada - velocidadeAtual;
+      // Termo Derivativo
+      double erroDerivativo = (erro - motor.erroAnterior) / (deltaTempo / 1000.0);
 
-  // Integral
-  erroIntegral += erro * (deltaTempo / 1000.0);
+      // Sinal de Saída usando os Kps globais
+      double sinalSaida = (kp * erro) + (ki * motor.erroIntegral) + (kd * erroDerivativo);
 
-  // Derivativo
-  double erroDerivativo = (erro - erroAnterior) / (deltaTempo / 1000.0);
+      // Tratamento de parada
+      if (motor.velocidadeDesejada == 0)
+      {
+      sinalSaida = 0;
+      motor.erroIntegral = 0;
+      }
 
-  // Fórmula final do OUTPUT (Esforço de Controle)
-  // Este valor não tem unidade e deve ser convertido para PWM (0-255) para controlar o motor
-  // As próprias constantes PID (kp, ki, kd) se encarregam de ajustar a escala do sinal de saída
-  double sinalSaida = (kp * erro) + (ki * erroIntegral) + (kd * erroDerivativo);
+      // Direção dos pinos da Ponte H
+      if (sinalSaida > 0)
+      {
+      digitalWrite(motor.pinIN1, HIGH);
+      digitalWrite(motor.pinIN2, LOW);
+      }
+      else if (sinalSaida < 0)
+      {
+      digitalWrite(motor.pinIN1, LOW);
+      digitalWrite(motor.pinIN2, HIGH);
+      }
+      else
+      {
+      digitalWrite(motor.pinIN1, LOW);
+      digitalWrite(motor.pinIN2, LOW);
+      }
 
+      // Cálculo do PWM com Offset para atrito estático
+      int pwm = abs((int)sinalSaida);
+      if (motor.velocidadeDesejada != 0 && pwm > 0)
+      {
+      pwm = pwm + 30; // Mínimo PWM para dar a partida
+      }
+      pwm = constrain(pwm, 0, 255);
 
-  // 3. Converter o OUTPUT (Esforço de Controle) para PWM (0-255 com direção)
+      // Enviar PWM para a Ponte H
+      analogWrite(motor.pinPWM, pwm);
 
-  // Lidar com a direção
-  if (sinalSaida > 0)
-  {
-    // Frente
-    motorParaFrente();
-
-    // Para ponte H l298n deve ser aglo como:
-    // digitalWrite(IN1, HIGH);
-    // digitalWrite(IN2, LOW);
-  }
-  else
-  {
-    // Ré / Freio
-    motorParaTras();
-
-    // Para ponte H l298n deve ser aglo como:
-    // digitalWrite(IN1, LOW);
-    // digitalWrite(IN2, HIGH);
-  }
-
-  // Valor absoluto (módulo)
-  int pwm = abs(sinalSaida);
-
-  // IMPORTANTE: limitar a saída para o intervalo possível
-  if (pwm > 255)
-  {
-    pwm = 255;
-  }
-
-
-  // 4. Enviar saída para o motor (PWM)
-  analogWrite(ENA, pwm);
-
-  
-  // 5. Atualizar variáveis para o próximo ciclo
-  tempoAnterior = tempoAtual;
-  // Alguma lógica associada ao cálculo da velocidade pode vir aqui
-
-  // Monitor Serial
-  Serial.print("Desejada:");
-  Serial.print(velocidadeDesejada);
-  Serial.print("Atual:");
-  Serial.println(velocidadeAtual);
+      // Atualizar erro anterior do motor
+      motor.erroAnterior = erro;
 }

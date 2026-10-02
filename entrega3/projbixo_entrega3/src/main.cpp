@@ -161,6 +161,9 @@ void controle_pid() {
   // 1. Calcular o Erro (Setpoint desejado - Velocidade Real das rodas)
   // 2. Calcular as acoes Proporcional (P), Integral (I) e Derivativa (D)
   // 3. Converter o resultado matematico em sinal PWM (0 a 255) para enviar para a Ponte H.
+
+  // erro = setpoint - velocidade medida
+
 }
 
 // ==========================================
