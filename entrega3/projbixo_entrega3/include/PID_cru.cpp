@@ -28,9 +28,6 @@ double kd = 1.0;
 double erroIntegral = 0;
 double erroAnterior = 0;
 
-void logicaPID();
-void motorParaFrente();
-void motorParaTras():
 
 void setup()
 {

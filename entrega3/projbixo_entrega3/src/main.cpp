@@ -25,6 +25,33 @@
 // ==========================================
 // O termo 'volatile' informa ao compilador que a variavel pode mudar a qualquer momento 
 // fora do fluxo normal do codigo (ou seja, dentro das interrupcoes).
+struct Motor {
+      // Pinos de controle (Ponte H)
+      int pinPWM;
+      int pinIN1;
+      int pinIN2;
+
+      // Variáveis de Velocidade
+      double velocidadeDesejada;
+      double velocidadeAtual;
+
+      // Variáveis do PID
+      double erroIntegral;
+      double erroAnterior;
+};
+
+Motor motorEsquerdo = {MOT_ESQ_PWM, MOT_ESQ_IN1, MOT_ESQ_IN2, 0.0, 0.0, 0.0, 0.0};
+Motor motorDireito  = {MOT_DIR_PWM, MOT_DIR_IN1, MOT_DIR_IN2, 0.0, 0.0, 0.0, 0.0};
+
+// Constantes PID (Esses valores devem ser ajustados/tunados para cada caso)
+double kp = 2.0;
+double ki = 0.5;
+double kd = 1.0;
+
+// Variáveis PID
+double erroIntegral = 0;
+double erroAnterior = 0;
+
 volatile long ticks_esq = 0;
 volatile long ticks_dir = 0;
 
@@ -156,14 +183,60 @@ void calcula_odometria() {
 
 }
 
-void controle_pid() {
-  // TODO (Aula 4): Implementar o Controle em Malha Fechada
-  // 1. Calcular o Erro (Setpoint desejado - Velocidade Real das rodas)
-  // 2. Calcular as acoes Proporcional (P), Integral (I) e Derivativa (D)
-  // 3. Converter o resultado matematico em sinal PWM (0 a 255) para enviar para a Ponte H.
+void calcularPIDMotor(Motor &motor, double deltaTempo)
+{
+      if (deltaTempo <= 0) return;
 
-  // erro = setpoint - velocidade medida
+      // Cálculo do Erro
+      double erro = motor.velocidadeDesejada - motor.velocidadeAtual;
 
+      // Termo Integral com Anti-Windup
+      motor.erroIntegral += erro * (deltaTempo / 1000.0);
+      motor.erroIntegral = constrain(motor.erroIntegral, -100.0, 100.0);
+
+      // Termo Derivativo
+      double erroDerivativo = (erro - motor.erroAnterior) / (deltaTempo / 1000.0);
+
+      // Sinal de Saída usando os Kps globais
+      double sinalSaida = (kp * erro) + (ki * motor.erroIntegral) + (kd * erroDerivativo);
+
+      // Tratamento de parada
+      if (motor.velocidadeDesejada == 0)
+      {
+      sinalSaida = 0;
+      motor.erroIntegral = 0;
+      }
+
+      // Direção dos pinos da Ponte H
+      if (sinalSaida > 0)
+      {
+      digitalWrite(motor.pinIN1, HIGH);
+      digitalWrite(motor.pinIN2, LOW);
+      }
+      else if (sinalSaida < 0)
+      {
+      digitalWrite(motor.pinIN1, LOW);
+      digitalWrite(motor.pinIN2, HIGH);
+      }
+      else
+      {
+      digitalWrite(motor.pinIN1, LOW);
+      digitalWrite(motor.pinIN2, LOW);
+      }
+
+      // Cálculo do PWM com Offset para atrito estático
+      int pwm = abs((int)sinalSaida);
+      if (motor.velocidadeDesejada != 0 && pwm > 0)
+      {
+      pwm = pwm + 30; // Mínimo PWM para dar a partida
+      }
+      pwm = constrain(pwm, 0, 255);
+
+      // Enviar PWM para a Ponte H
+      analogWrite(motor.pinPWM, pwm);
+
+      // Atualizar erro anterior do motor
+      motor.erroAnterior = erro;
 }
 
 // ==========================================
@@ -207,7 +280,7 @@ void loop() {
   // Verifica se ja passou o tempo necessario (ex: 50ms) para rodar o controle novamente
   if (tempo_atual - tempo_anterior >= INTERVALO_AMOSTRAGEM_MS) {
     calcula_odometria();
-    controle_pid();
+    calcularPIDMotor();
   
     // ==========================================
     // INTEGRAcaO ROS 2 (Apenas na Aula 5)
